@@ -1,0 +1,88 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import type { Meal } from '../typess/types';
+
+export default function RecipeDetails() {
+  const { id } = useParams<{ id: string }>();
+  const [recipe, setRecipe] = useState<Meal | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRecipe = async () => {
+      try {
+        const res = await axios.get(
+          `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`
+        );
+        setRecipe(res.data.meals?.[0] as Meal);
+      } catch (error) {
+        console.error('Failed to fetch recipe details', error);
+        setRecipe(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipe();
+  }, [id]);
+
+  const getIngredients = (): string[] => {
+    if (!recipe) return [];
+
+    const ingredients: string[] = [];
+
+    for (let i = 1; i <= 20; i++) {
+      const ingredient = recipe[`strIngredient${i}`];
+      const measure = recipe[`strMeasure${i}`];
+
+      if (ingredient && ingredient.trim()) {
+        ingredients.push(`${measure?.trim() || ''} ${ingredient.trim()}`.trim());
+      }
+    }
+
+    return ingredients;
+  };
+
+  if (loading) return <div className="text-center mt-10">Loading...</div>;
+  if (!recipe) return <div className="text-center mt-10 text-red-500">Recipe not found</div>;
+
+  return (
+    <div className="max-w-4xl mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-4">{recipe.strMeal}</h1>
+
+      <img
+        src={recipe.strMealThumb}
+        alt={recipe.strMeal}
+        className="rounded-lg mb-6 shadow-md w-full max-h-[400px] object-cover"
+      />
+
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">Ingredients</h2>
+        <ul className="list-disc pl-5 space-y-1">
+          {getIngredients().map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Instructions</h2>
+        <p className="whitespace-pre-line leading-relaxed">{recipe.strInstructions}</p>
+      </div>
+
+      {recipe.strYoutube && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-2">Video Tutorial</h2>
+          <a
+            href={recipe.strYoutube}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline"
+          >
+            Watch on YouTube
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
