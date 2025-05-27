@@ -1,0 +1,47 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import type { Meal } from '../typess/types';
+import RecipeCard from './RecipeCard';
+
+export default function SearchResults() {
+  const { query } = useParams<{ query: string }>();
+  const [meals, setMeals] = useState<Meal[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchResults = async () => {
+      try {
+        const res = await axios.get(
+          `https://www.themealdb.com/api/json/v1/1/search.php?s=${query}`
+        );
+        // ✅ Type casting the API response
+        setMeals(res.data.meals as Meal[]);
+      } catch (error) {
+        console.error('Error fetching results:', error);
+        setMeals([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResults();
+  }, [query]);
+
+  if (loading) return <div className="text-center mt-10">Loading...</div>;
+
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <h2 className="text-2xl font-bold mb-4">Results for "{query}"</h2>
+      {meals && meals.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {meals.map((meal) => (
+            <RecipeCard key={meal.idMeal} meal={meal} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-red-500">No recipes found.</p>
+      )}
+    </div>
+  );
+}
